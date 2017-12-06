@@ -1,3 +1,5 @@
+# coding=utf-8
+
 from __future__ import division
 import math
 import operator
@@ -10,16 +12,17 @@ import csv
 from collections import Counter
 
 
+
 ##################################################
 # data class to hold csv data
 ##################################################
 class data():
     def __init__(self, classifier):
-        self.examples = []
-        self.attributes = []
-        self.attr_types = []
-        self.classifier = classifier
-        self.class_index = None
+        self.examples = [] #样本集
+        self.attributes = [] #属性集
+        self.attr_types = [] #属性值类型
+        self.classifier = classifier #二值attributes分类
+        self.class_index = None #二值attributes分类的index号
 
 ##################################################
 # function to read in data from the .csv files
@@ -28,17 +31,17 @@ def read_data(dataset, datafile, datatypes):
     print "Reading data..."
     f = open(datafile)
     original_file = f.read()
-    rowsplit_data = original_file.splitlines()
-    dataset.examples = [rows.split(',') for rows in rowsplit_data]
+    rowsplit_data = original_file.splitlines() #返回包含各行的列表
+    dataset.examples = [rows.split(',') for rows in rowsplit_data] #使用notepad++之类打开就发现，excel其实是以,分隔的
 
     #list attributes
-    dataset.attributes = dataset.examples.pop(0)
+    dataset.attributes = dataset.examples.pop(0) #属性是第一行，pop返回列表中删除的对象
 
     
     #create array that indicates whether each attribute is a numerical value or not
-    attr_type = open(datatypes) 
+    attr_type = open(datatypes)  #属性值类型在另一个文件中，只有一行数据
     orig_file = attr_type.read()
-    dataset.attr_types = orig_file.split(',')
+    dataset.attr_types = orig_file.split(',') #使用notepad++之类打开就发现，excel其实是以,分隔的
 
 ##################################################
 # Preprocess dataset
@@ -46,24 +49,24 @@ def read_data(dataset, datafile, datatypes):
 def preprocess2(dataset):
     print "Preprocessing data..."
 
-    class_values = [example[dataset.class_index] for example in dataset.examples]
-    class_mode = Counter(class_values)
-    class_mode = class_mode.most_common(1)[0][0]
+    class_values = [example[dataset.class_index] for example in dataset.examples] #example的分类值class_values
+    class_mode = Counter(class_values) #分类值class_values频率字典
+    class_mode = class_mode.most_common(1)[0][0] #分类值频率元组列表第一项也就是最频繁的class_values
                          
     for attr_index in range(len(dataset.attributes)):
 
-        ex_0class = filter(lambda x: x[dataset.class_index] == '0', dataset.examples)
-        values_0class = [example[attr_index] for example in ex_0class]  
+        ex_0class = filter(lambda x: x[dataset.class_index] == '0', dataset.examples) #过滤得到分类值class_values为0的项
+        values_0class = [example[attr_index] for example in ex_0class]  #过滤之后的属性值
                            
-        ex_1class = filter(lambda x: x[dataset.class_index] == '1', dataset.examples)
-        values_1class = [example[attr_index] for example in ex_1class]
+        ex_1class = filter(lambda x: x[dataset.class_index] == '1', dataset.examples) #过滤得到分类值class_values为1的项
+        values_1class = [example[attr_index] for example in ex_1class]  #过滤之后的属性值
                 
-        values = Counter(values_0class)
-        value_counts = values.most_common()
+        values = Counter(values_0class)  #过滤之后的属性值频率字典
+        value_counts = values.most_common() #过滤之后的属性值频率元组列表
         
-        mode0 = values.most_common(1)[0][0]
+        mode0 = values.most_common(1)[0][0] #过滤之后的属性值频率元组列表第一项也就是最频繁的values
         if mode0 == '?':
-            mode0 = values.most_common(2)[1][0]
+            mode0 = values.most_common(2)[1][0] #缺失值则取第二
 
         values = Counter(values_1class)
         mode1 = values.most_common(1)[0][0]
@@ -71,15 +74,15 @@ def preprocess2(dataset):
         if mode1 == '?':
             mode1 = values.most_common(2)[1][0]
 
-        mode_01 = [mode0, mode1]
+        mode_01 = [mode0, mode1] #取0 和 1 的 属性值频率元组列表第一项也就是最频繁的values列表
 
-        attr_modes = [0]*len(dataset.attributes)
-        attr_modes[attr_index] = mode_01
+        attr_modes = [0]*len(dataset.attributes) #初始化0 
+        attr_modes[attr_index] = mode_01 #属性(0,1)列表
         
         for example in dataset.examples:
-            if (example[attr_index] == '?'):
+            if (example[attr_index] == '?'): #缺失值处理，根据本身类别来取众数
                 if (example[dataset.class_index] == '0'):
-                    example[attr_index] = attr_modes[attr_index][0]
+                    example[attr_index] = attr_modes[attr_index][0] 
                 elif (example[dataset.class_index] == '1'):
                     example[attr_index] = attr_modes[attr_index][1]
                 else:
@@ -88,23 +91,25 @@ def preprocess2(dataset):
         #convert attributes that are numeric to floats
         for example in dataset.examples:
             for x in range(len(dataset.examples[0])):
-                if dataset.attributes[x] == 'True':
-                    example[x] = float(example[x])
+                #if dataset.attributes[x] == 'True': 
+				#修正 这里是不是写错了 attr_types
+                if dataset.attr_types[x] == 'True':
+				    example[x] = float(example[x])
 
 ##################################################
 # tree node class that will make up the tree
 ##################################################
 class treeNode():
     def __init__(self, is_leaf, classification, attr_split_index, attr_split_value, parent, upper_child, lower_child, height):
-        self.is_leaf = True
-        self.classification = None
-        self.attr_split = None
-        self.attr_split_index = None
-        self.attr_split_value = None
-        self.parent = parent
-        self.upper_child = None
-        self.lower_child = None
-        self.height = None
+        self.is_leaf = True #该节点是否为叶节点
+        self.classification = None #该节点的样本归类
+        self.attr_split = None #最优划分属性
+        self.attr_split_index = None #最优划分属性index
+        self.attr_split_value = None #最优划分属性value
+        self.parent = parent #父节点
+        self.upper_child = None #上子树节点
+        self.lower_child = None #下子树节点
+        self.height = None #节点深度，根为0
 
 ##################################################
 # compute tree recursively
@@ -127,38 +132,39 @@ def compute_tree(dataset, parent_node, classifier):
     if (parent_node == None):
         node.height = 0
     else:
-        node.height = node.parent.height + 1
+        node.height = node.parent.height + 1 #树高度+1
 
-    ones = one_count(dataset.examples, dataset.attributes, classifier)
-    if (len(dataset.examples) == ones):
-        node.classification = 1
+    ones = one_count(dataset.examples, dataset.attributes, classifier) #统计属性值为1的样本数
+	#递归返回，情形(1) 样本全为同一类别
+    if (len(dataset.examples) == ones): #全部为1
+        node.classification = 1 #该节点的样本归类
         node.is_leaf = True
         return node
-    elif (ones == 0):
-        node.classification = 0
+    elif (ones == 0): #全部非1
+        node.classification = 0 #该节点的样本归类
         node.is_leaf = True
         return node
     else:
         node.is_leaf = False
-    attr_to_split = None # The index of the attribute we will split on
-    max_gain = 0 # The gain given by the best attribute
-    split_val = None 
+    attr_to_split = None # The index of the attribute we will split on 最优划分属性index
+    max_gain = 0 # The gain given by the best attribute 最大收益
+    split_val = None #属性分割值
     min_gain = 0.01
-    dataset_entropy = calc_dataset_entropy(dataset, classifier)
+    dataset_entropy = calc_dataset_entropy(dataset, classifier) #计算数据集信息熵
     for attr_index in range(len(dataset.examples[0])):
 
         if (dataset.attributes[attr_index] != classifier):
             local_max_gain = 0
             local_split_val = None
-            attr_value_list = [example[attr_index] for example in dataset.examples] # these are the values we can split on, now we must find the best one
-            attr_value_list = list(set(attr_value_list)) # remove duplicates from list of all attribute values
-            if(len(attr_value_list) > 100):
-                attr_value_list = sorted(attr_value_list)
+            attr_value_list = [example[attr_index] for example in dataset.examples] # these are the values we can split on, now we must find the best one 列表
+            attr_value_list = list(set(attr_value_list)) # remove duplicates from list of all attribute values 集合
+            if(len(attr_value_list) > 100): #属性值分散
+                attr_value_list = sorted(attr_value_list) #排序
                 total = len(attr_value_list)
                 ten_percentile = int(total/10)
                 new_list = []
                 for x in range(1, 10):
-                    new_list.append(attr_value_list[x*ten_percentile])
+                    new_list.append(attr_value_list[x*ten_percentile]) #换序每隔十取一
                 attr_value_list = new_list
 
             for val in attr_value_list:
@@ -169,38 +175,40 @@ def compute_tree(dataset, parent_node, classifier):
                 if (local_gain > local_max_gain):
                     local_max_gain = local_gain
                     local_split_val = val
-
+            #到这里已经找到最优属性切割值
             if (local_max_gain > max_gain):
                 max_gain = local_max_gain
                 split_val = local_split_val
                 attr_to_split = attr_index
-
+    #到这已经找到最优划分属性和最优属性切割值
     #attr_to_split is now the best attribute according to our gain metric
+	#递归返回，情形(2) 
     if (split_val is None or attr_to_split is None):
         print "Something went wrong. Couldn't find an attribute to split on or a split value."
-    elif (max_gain <= min_gain or node.height > 20):
+    elif (max_gain <= min_gain or node.height > 20): #信息增益趋于0或者树高度超过20 这里算正则项
 
         node.is_leaf = True
-        node.classification = classify_leaf(dataset, classifier)
+        node.classification = classify_leaf(dataset, classifier) #叶节点直接以多数类作为标记
 
         return node
 
-    node.attr_split_index = attr_to_split
-    node.attr_split = dataset.attributes[attr_to_split]
-    node.attr_split_value = split_val
+    node.attr_split_index = attr_to_split #确定该节点划分属性index
+    node.attr_split = dataset.attributes[attr_to_split] #确定该节点划分属性index
+    node.attr_split_value = split_val #确定该节点划分属性val
     # currently doing one split per node so only two datasets are created
-    upper_dataset = data(classifier)
-    lower_dataset = data(classifier)
+	#以下切分出上下分支数据集
+    upper_dataset = data(classifier) #data对象
+    lower_dataset = data(classifier) #data对象
     upper_dataset.attributes = dataset.attributes
     lower_dataset.attributes = dataset.attributes
     upper_dataset.attr_types = dataset.attr_types
     lower_dataset.attr_types = dataset.attr_types
     for example in dataset.examples:
-        if (attr_to_split is not None and example[attr_to_split] >= split_val):
+        if (attr_to_split is not None and example[attr_to_split] >= split_val): 
             upper_dataset.examples.append(example)
         elif (attr_to_split is not None):
             lower_dataset.examples.append(example)
-
+    #以下递归的以新的节点产生子树
     node.upper_child = compute_tree(upper_dataset, node, classifier)
     node.lower_child = compute_tree(lower_dataset, node, classifier)
 
@@ -220,6 +228,7 @@ def classify_leaf(dataset, classifier):
 
 ##################################################
 # Calculate the entropy of the current dataset
+#二分类标准信息熵计算
 ##################################################
 def calc_dataset_entropy(dataset, classifier):
     ones = one_count(dataset.examples, dataset.attributes, classifier)
@@ -243,26 +252,35 @@ def calc_gain(dataset, entropy, val, attr_index):
     classifier = dataset.attributes[attr_index]
     attr_entropy = 0
     total_examples = len(dataset.examples);
-    gain_upper_dataset = data(classifier)
-    gain_lower_dataset = data(classifier)
+    gain_upper_dataset = data(classifier) #data对象
+    gain_lower_dataset = data(classifier) #data对象
     gain_upper_dataset.attributes = dataset.attributes
     gain_lower_dataset.attributes = dataset.attributes
     gain_upper_dataset.attr_types = dataset.attr_types
     gain_lower_dataset.attr_types = dataset.attr_types
     for example in dataset.examples:
-        if (example[attr_index] >= val):
+        if (example[attr_index] >= val): #二分切割
             gain_upper_dataset.examples.append(example)
         elif (example[attr_index] < val):
             gain_lower_dataset.examples.append(example)
 
     if (len(gain_upper_dataset.examples) == 0 or len(gain_lower_dataset.examples) == 0): #Splitting didn't actually split (we tried to split on the max or min of the attribute's range)
         return -1
-
+    #以下是标准的信息增益计算公式
     attr_entropy += calc_dataset_entropy(gain_upper_dataset, classifier)*len(gain_upper_dataset.examples)/total_examples
     attr_entropy += calc_dataset_entropy(gain_lower_dataset, classifier)*len(gain_lower_dataset.examples)/total_examples
-
-    return entropy - attr_entropy
-
+    #'''#修正
+    attr_iv = 0
+    attr_p=len(gain_upper_dataset.examples)/total_examples
+    attr_iv += attr_p * math.log(attr_p, 2)
+    attr_p=len(gain_lower_dataset.examples)/total_examples
+    attr_iv += attr_p * math.log(attr_p, 2)
+    attr_iv = -attr_iv
+    return (entropy - attr_entropy)/attr_iv
+	#'''#修正
+	
+    #return entropy - attr_entropy
+	
 ##################################################
 # count number of examples with classification "1"
 ##################################################
@@ -403,7 +421,9 @@ def print_disjunctive(node, dataset, dnf_string):
 
 def main():
     args = str(sys.argv)
+    print args
     args = ast.literal_eval(args)
+    print args
     if (len(args) < 2):
         print "You have input less than the minimum number of arguments. Go back and read README.txt and do it right next time!"
     elif (args[1][-4:] != ".csv"):
@@ -436,6 +456,7 @@ def main():
 
         print "Computing tree..."
         root = compute_tree(dataset, None, classifier) 
+        #print_tree(root)
         if ("-s" in args):
             print_disjunctive(root, dataset, "")
             print "\n"
@@ -459,6 +480,7 @@ def main():
                 print "Error: You must validate if you want to prune"
             else:
                 post_prune_accuracy = 100*prune_tree(root, root, validateset, best_score)
+                #print_tree(root)
                 print "Post-pruning score on validation set: " + str(post_prune_accuracy) + "%"
         if ("-t" in args):
             datatest = args[args.index("-t") + 1]

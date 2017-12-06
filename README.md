@@ -31,3 +31,7 @@ This command runs decision-tree.py with btrain.csv as the training set, bvalidat
 python decision-tree.py btrain.csv winner -d datatypes.csv -v bvalidate.csv -p -s
 ```
 This command runs decision-tree.py with btrain.csv as the training set, 'winner' as the classifier, datatypes.csv as the datatypes file, bvalidate.csv as the validation file, pruning enabled, and printing enabled. Testing is not enabled for this run
+
+##参考
+数据挖掘十大算法之一C4.5（详细版终结版）
+http://blog.csdn.net/x454045816/article/details/44726921
