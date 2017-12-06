@@ -164,7 +164,7 @@ def compute_tree(dataset, parent_node, classifier):
                 ten_percentile = int(total/10)
                 new_list = []
                 for x in range(1, 10):
-                    new_list.append(attr_value_list[x*ten_percentile]) #换序每隔十取一
+                    new_list.append(attr_value_list[x*ten_percentile]) #换序每隔ten_percentile取一
                 attr_value_list = new_list
 
             for val in attr_value_list:
@@ -279,10 +279,11 @@ def calc_gain(dataset, entropy, val, attr_index):
     return (entropy - attr_entropy)/attr_iv
 	#'''#修正
 	
-    #return entropy - attr_entropy
+    return entropy - attr_entropy
 	
 ##################################################
 # count number of examples with classification "1"
+# 统计属性值为1的样本数
 ##################################################
 def one_count(instances, attributes, classifier):
     count = 0
@@ -313,7 +314,7 @@ def prune_tree(root, node, dataset, best_score):
             new_score = validate_tree(root, dataset)
         else:
             new_score = 0
-  
+        #递归返回
         # if its better, change it
         if (new_score >= best_score):
             return new_score
@@ -323,6 +324,11 @@ def prune_tree(root, node, dataset, best_score):
             return best_score
     # if its not a leaf
     else:
+        #递归代码逻辑修正
+        new_score = prune_tree(root, node.upper_child, dataset, best_score)
+        new_score = prune_tree(root, node.lower_child, dataset, new_score)
+        return new_score
+        '''		
         # prune tree(node.upper_child)
         new_score = prune_tree(root, node.upper_child, dataset, best_score)
         # if its now a leaf, return
@@ -333,22 +339,23 @@ def prune_tree(root, node, dataset, best_score):
         # if its now a leaf, return
         if (node.is_leaf == True):
             return new_score
-
         return new_score
-
+        '''
 ##################################################
 # Validate tree
+# 验证集数据
 ##################################################
 def validate_tree(node, dataset):
     total = len(dataset.examples)
     correct = 0
     for example in dataset.examples:
         # validate example
-        correct += validate_example(node, example)
-    return correct/total
+        correct += validate_example(node, example) #正确分类的个数
+    return correct/total #正确分类的比例
 
 ##################################################
 # Validate example
+# 验证集样本 一直归类到叶节点寻找其分类标签
 ##################################################
 def validate_example(node, example):
     if (node.is_leaf == True):
@@ -503,7 +510,7 @@ def main():
             for example in testset.examples:
                 example[testset.class_index] = test_example(example, root, testset.class_index)
             saveset = testset
-            saveset.examples = [saveset.attributes] + saveset.examples
+            saveset.examples = [saveset.attributes] + saveset.examples #第一行写入attributes 后面写入样本集
             a.writerows(saveset.examples)
             b.close()
             print "Testing complete. Results outputted to results.csv"
